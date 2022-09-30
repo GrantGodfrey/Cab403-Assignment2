@@ -1,6 +1,6 @@
 #pragma once
 
-//comment
+
 typedef struct car
 {
     int lp;
