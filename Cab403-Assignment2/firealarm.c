@@ -127,10 +127,9 @@ void tempmonitor(int level)
     }
 }
 
-void *openboomgate(shared_memory_t shm, void *arg)
+void *openboomgate(shared_memory_t *shm, void *arg)
 {
-
-    &sh = arg;
+    shared_boomgate_t *bg = arg;
     pthread_mutex_lock(&bg->m);
     for (;;)
     {
