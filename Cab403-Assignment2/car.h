@@ -30,14 +30,14 @@ typedef struct lpr
 
 typedef struct PARKING
 {
-    entrance entrences;
+    entrance entrances;
     exit exits;
     level levels;
-} shared_parking_t;
+};
 
-typedef struct shm
+typedef struct shared_memory
 {
     const char *name;
     int fd;
     PARKING parking;
-} shm_t;
+} shared_memory_t;

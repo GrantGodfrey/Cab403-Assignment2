@@ -7,6 +7,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "car.h"
+
 int shm_fd;
 volatile void *shm;
 
@@ -20,19 +22,6 @@ pthread_cond_t alarm_condvar = PTHREAD_COND_INITIALIZER;
 
 #define MEDIAN_WINDOW 5
 #define TEMPCHANGE_WINDOW 30
-
-struct boomgate
-{
-    pthread_mutex_t m;
-    pthread_cond_t c;
-    char s;
-};
-struct parkingsign
-{
-    pthread_mutex_t m;
-    pthread_cond_t c;
-    char display;
-};
 
 struct tempnode
 {
@@ -138,9 +127,10 @@ void tempmonitor(int level)
     }
 }
 
-void *openboomgate(void *arg)
+void *openboomgate(shared_memory_t shm, void *arg)
 {
-    struct boomgate *bg = arg;
+
+    &sh = arg;
     pthread_mutex_lock(&bg->m);
     for (;;)
     {
