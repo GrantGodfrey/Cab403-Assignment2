@@ -1,3 +1,4 @@
+// -------------------------------------------- HEADER -------------------------------------------- //
 #include "sharedMemory.h"
 #include <semaphore.h>
 #include <sys/mman.h>
@@ -34,6 +35,7 @@ pthread_t timeCheckThread[LEVELS];
 pthread_t boomgateThreadExit[EXITS];
 pthread_t boomgateThreadEntrance[ENTRANCES];
 
+// --------------------------------------- PUBLIC VARIABLES --------------------------------------- //
 int levelCapacity[LEVELS];
 char approved_plates[100][7];
 char statusDisp[ENTRANCES];
@@ -45,6 +47,7 @@ double moneyEarned;
 int fire;
 char startLPR[7] = "000000";
 
+// initializing the storage of care park
 void storageInit(carMemory_t *carMemory)
 {
     carMemory->size = 0;
@@ -59,7 +62,7 @@ void storageInit(carMemory_t *carMemory)
     }
 }
 
-
+//adding cars into parking by level
 void addCar(carMemory_t *carMemory, char *plate, clock_t start, clock_t finish, int level)
 {
     int old_size = carMemory->size;
@@ -72,7 +75,7 @@ void addCar(carMemory_t *carMemory, char *plate, clock_t start, clock_t finish, 
     carMemory->size = old_size + 1;
 }
 
-
+//removing cars from parking 
 void removeCar(carMemory_t *carMemory, char *plate)
 {
     int old_size = carMemory->size;
@@ -121,7 +124,7 @@ void removeCar(carMemory_t *carMemory, char *plate)
     carMemory->size = old_size - 1;
 }
 
-
+//finding car according the licensePlate
 int findIndex(carMemory_t *carMemory, char *plate)
 {
     int index;
@@ -136,7 +139,7 @@ int findIndex(carMemory_t *carMemory, char *plate)
     return 1;
 }
 
-
+//printing the information of parked car
 void printCarList(carMemory_t *carMemory)
 {
     printf("NUMBER OF PLATES ARE: %d\n", carMemory->size);
@@ -153,13 +156,17 @@ void printCarList(carMemory_t *carMemory)
 // --------------------------------------------- MAIN --------------------------------------------- //
 bool create_shared_object_R(shared_memory_t *shm, const char *share_name)
 {
+    // Assign share name to shm->name.
     shm->name = share_name;
+
+    // Create the shared memory object, allowing read-write access
     if ((shm->fd = shm_open(share_name, O_RDWR, 0)) < 0)
     {
         shm->data = NULL;
         return false;
     }
 
+    // Map memory segment
     if ((shm->data = mmap(0, sizeof(shared_data_t), PROT_WRITE, MAP_SHARED, shm->fd, 0)) == (void *)-1)
     {
         return false;
@@ -520,7 +527,7 @@ void *lpr_exit(void *arg)
     }while (!fire);
     return 0;
 }
-
+//we meet here
 void *exit_cont(void *arg)
 {
     int i = *(int *)arg;
