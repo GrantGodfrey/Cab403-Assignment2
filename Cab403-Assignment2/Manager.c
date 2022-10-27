@@ -565,6 +565,7 @@ void *exit_cont(void *arg)
     return 0;
 }
 
+// Check the time of a car is parked
 void *time_check(void *arg)
 {
     int i = *(int *)arg;
@@ -592,6 +593,7 @@ void *time_check(void *arg)
     return 0;
 }
 
+// Entrance boom gate controller
 void *boomgate_entrance(void *arg) 
 {
     int i = *(int *)arg;
@@ -653,6 +655,7 @@ void *boomgate_entrance(void *arg)
     return 0;
 }
 
+// Exit boom gate controller
 void *boomgate_exit(void *arg)
 {
     int i = *(int *)arg;
@@ -697,6 +700,7 @@ void *boomgate_exit(void *arg)
     return 0;
 }
 
+// Generate bills based on the total time they are parked
 void generateBill(char *numPlate)
 {
 
@@ -722,6 +726,7 @@ void generateBill(char *numPlate)
     }
 }
 
+// Display the cuurent status of the parking lot on a frequently-updating screen
 void *statDisplay(void *args)
 {
     system("clear");
@@ -809,6 +814,7 @@ void *statDisplay(void *args)
     }
 }
 
+// Initialize threads
 void initThreads(void)
 {
 
@@ -876,7 +882,7 @@ void initThreads(void)
    
 }
 
-
+// Read licence plates file
 void readFile(char *name)
 {
     int i = 0;
@@ -888,6 +894,7 @@ void readFile(char *name)
     }
 }
 
+// Displays evacuation message
 void evac_sequence(void)
 {
     char *evacmessage = "EVACUATE";
@@ -903,6 +910,7 @@ void evac_sequence(void)
     }
 }
 
+// Raise all boom gates and initialize evacuation sequence if a fire is reported 
 void fire_emergency(void)
 {
     char *raiseOpen = "RO";
@@ -937,6 +945,7 @@ void fire_emergency(void)
     }
 }
 
+// Check if the fire alarm in each level is triggered to report a fire
 void fire_checker(void)
 {
 
@@ -949,6 +958,7 @@ void fire_checker(void)
     }
 }
 
+// Main program
 int main()
 {
     // while(!fire)
