@@ -358,7 +358,7 @@ void *lpr_entrance(void *arg)
     }while(!fire);
     return 0;
 }
-
+//we meet here
 void *lpr_level(void *arg)
 {
     int i = *(int *)arg;
@@ -529,7 +529,7 @@ void *lpr_exit(void *arg)
     }while (!fire);
     return 0;
 }
-//we meet here
+
 void *exit_cont(void *arg)
 {
     int i = *(int *)arg;
