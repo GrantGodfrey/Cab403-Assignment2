@@ -246,7 +246,7 @@ double generateRandom(int lower, int upper)
     return num;
 }
 
-
+//procedure of car entrance into the park
 void *lpr_entrance(void *arg)
 {
     int i = *(int *)arg;
@@ -358,7 +358,8 @@ void *lpr_entrance(void *arg)
     }while(!fire);
     return 0;
 }
-//we meet here
+
+//procedure of assigning the cars into the park according to the level
 void *lpr_level(void *arg)
 {
     int i = *(int *)arg;
@@ -475,6 +476,7 @@ void *level_cont(void *arg)
     return 0;
 }
 
+//procedure of car exit from the park
 void *lpr_exit(void *arg)
 {
     int i = *(int *)arg;
