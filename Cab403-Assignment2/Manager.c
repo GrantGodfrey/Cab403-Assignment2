@@ -47,7 +47,7 @@ double moneyEarned;
 int fire;
 char startLPR[7] = "000000";
 
-// initializing the storage of care park
+// storage initializing of care park
 void storageInit(carMemory_t *carMemory)
 {
     carMemory->size = 0;
@@ -174,6 +174,7 @@ bool create_shared_object_R(shared_memory_t *shm, const char *share_name)
     return true;
 }
 
+//licensePlate initializing
 void plateInit(carVector_t *carVector)
 {
     carVector->size = 0;
@@ -183,7 +184,7 @@ void plateInit(carVector_t *carVector)
     }
 }
 
-
+//adding the licensePlate into the file
 void addPlate(carVector_t *carVector, char *plate)
 {
     int old_size = carVector->size;
@@ -191,7 +192,7 @@ void addPlate(carVector_t *carVector, char *plate)
     carVector->size = old_size + 1;
 }
 
-
+//removing the last licensePlate from the file
 void popPlate(carVector_t *carVector)
 {
     int old_size = carVector->size;
@@ -207,7 +208,7 @@ void popPlate(carVector_t *carVector)
     carVector->size = old_size - 1;
 }
 
-
+//removing the random licensePlate from the file
 void popRandom(carVector_t *carVector, int index)
 {
     int old_size = carVector->size;
@@ -238,6 +239,7 @@ void popRandom(carVector_t *carVector, int index)
 //     }
 // }
 
+//generating the random number
 double generateRandom(int lower, int upper)
 {
     double num = (rand() % (upper - lower + 1)) + lower;
