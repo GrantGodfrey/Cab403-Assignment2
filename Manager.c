@@ -11,7 +11,7 @@
 #include <time.h>
 
 #define SHARE_NAME "PARKING"
-#define CAPACITY 20
+#define CAPACITY 1
 #define ARSIZE 30
 
 shared_memory_t shm;
@@ -42,7 +42,7 @@ char entrDisplay[ENTRANCES];
 double bill;
 int16_t rawData[LEVELS][ARSIZE] = {0};
 double moneyEarned;
-int fire;
+int fireEmergency;
 char startLPR[7] = "000000";
 
 void storageInit(carMemory_t *carMemory)
@@ -136,7 +136,7 @@ int findIndex(carMemory_t *carMemory, char *plate)
     return 1;
 }
 
-bool create_shared_object_R(shared_memory_t *shm, const char *share_name)
+bool readObject(shared_memory_t *shm, const char *share_name)
 {
     shm->name = share_name;
     if ((shm->fd = shm_open(share_name, O_RDWR, 0)) < 0)
@@ -169,6 +169,16 @@ void addLP(carVector_t *carVector, char *plate)
     carVector->size = old_size + 1;
 }
 
+// helper
+void signalLPR(int i)
+{
+    pthread_mutex_lock(&shm.data->entrance[i].licensePlateReader.m);
+    strcpy(shm.data->entrance[i].licensePlateReader.plate, startLPR);
+    pthread_mutex_unlock(&shm.data->entrance[i].licensePlateReader.m);
+    pthread_cond_signal(&shm.data->entrance[i].licensePlateReader.c);
+    pthread_mutex_lock(&shm.data->entrance[i].licensePlateReader.m);
+}
+
 
 void popLP(carVector_t *carVector)
 {
@@ -191,28 +201,20 @@ double generateRandom(int lower, int upper)
     return num;
 }
 
-
 void *lpr_entrance(void *arg)
 {
+    bool allowed = false;
+    char toDisplay;
     int i = *(int *)arg;
     int j = 0;
     do 
     {
-        pthread_mutex_lock(&shm.data->entrance[i].licensePlateReader.m);
-        strcpy(shm.data->entrance[i].licensePlateReader.plate, startLPR);
-        pthread_mutex_unlock(&shm.data->entrance[i].licensePlateReader.m);
-
-        pthread_cond_signal(&shm.data->entrance[i].licensePlateReader.c);
-
-        pthread_mutex_lock(&shm.data->entrance[i].licensePlateReader.m);
+        signalLPR(i);
         while (!strcmp(shm.data->entrance[i].licensePlateReader.plate, startLPR))
         {
             pthread_cond_wait(&shm.data->entrance[i].licensePlateReader.c, &shm.data->entrance[i].licensePlateReader.m);
         }
         pthread_mutex_unlock(&shm.data->entrance[i].licensePlateReader.m);
-
-        bool allowed = false;
-        char toDisplay;
 
         for (int j = 0; j < 100; j++)
         {
@@ -296,7 +298,7 @@ void *lpr_entrance(void *arg)
             printf("%s Rejected!\n", shm.data->entrance[i].licensePlateReader.plate);
         }
   
-    }while(!fire);
+    }while(!fireEmergency);
     return 0;
 }
 
@@ -381,7 +383,7 @@ void *lpr_level(void *arg)
             }
             pthread_mutex_unlock(&levelCapacityMutex[i]);
         }
-    }while (!fire);
+    }while (!fireEmergency);
     return 0;
 }
 
@@ -412,7 +414,7 @@ void *level_cont(void *arg)
 
 
         pthread_cond_signal(&shm.data->level[i].licensePlateReader.c);
-    }while (!fire);
+    }while (!fireEmergency);
     return 0;
 }
 
@@ -467,7 +469,7 @@ void *lpr_exit(void *arg)
         pthread_mutex_unlock(&shm.data->exit[i].licensePlateReader.m);
         pthread_mutex_unlock(&carMemoryM);
         generateBill(shm.data->exit[i].licensePlateReader.plate);
-    }while (!fire);
+    }while (!fireEmergency);
     return 0;
 }
 
@@ -502,7 +504,7 @@ void *exit_cont(void *arg)
 
 
         pthread_cond_signal(&shm.data->exit[i].licensePlateReader.c);
-    }while (!fire);
+    }while (!fireEmergency);
     return 0;
 }
 
@@ -527,7 +529,7 @@ void *time_check(void *arg)
         }
 
         fire_checker();
-    }while (!fire);
+    }while (!fireEmergency);
 
     fire_emergency();
     return 0;
@@ -588,7 +590,7 @@ void *boomgate_entrance(void *arg)
         pthread_mutex_lock(&shm.data->entrance[i].boomGate.m);
         shm.data->entrance[i].boomGate.status = 'C';
         pthread_mutex_unlock(&shm.data->entrance[i].boomGate.m);
-    }while (!fire);
+    }while (!fireEmergency);
 
     fire_emergency();
     return 0;
@@ -632,7 +634,7 @@ void *boomgate_exit(void *arg)
         pthread_mutex_lock(&shm.data->exit[i].boomGate.m);
         shm.data->exit[i].boomGate.status = 'C';
         pthread_mutex_unlock(&shm.data->exit[i].boomGate.m);
-    }while (!fire);
+    }while (!fireEmergency);
 
     fire_emergency();
     return 0;
@@ -696,11 +698,6 @@ void *statDisplay(void *args)
             printf("Display: %c | ", entranceInfoSign);
             printf("BoomGate: %c\n", entranceGateStatus);
             
-            
-            // printf("----------------------------Entrance %d information----------------------------\n", i + 1);
-            // printf("LPR plate: %s \n", entrancePlateLPR);
-            // printf("Boom boomGate status: %c\n", entranceGateStatus);
-            // printf("Information display: %c\n", entranceInfoSign);
         }
 
         for (int i = 0; i < EXITS; i++)
@@ -708,14 +705,9 @@ void *statDisplay(void *args)
             pthread_mutex_lock(&shm.data->exit[i].licensePlateReader.m);
             strcpy(exitPlateLPR, shm.data->exit[i].licensePlateReader.plate);
             pthread_mutex_unlock(&shm.data->exit[i].licensePlateReader.m);
-            // Grab the exit LPR boomGate status
             pthread_mutex_lock(&shm.data->exit[i].boomGate.m);
             exitGateStatus = shm.data->exit[i].boomGate.status;
             pthread_mutex_unlock(&shm.data->exit[i].boomGate.m);
-
-            // printf("------------------------------Exit %d information------------------------------\n", i + 1);
-            // printf("LPR plate: %s\n", exitPlateLPR);
-            // printf("Boom boomGate status: %c\n", exitGateStatus);
 
             printf("\nExit %d | ", i + 1);
             printf("LPR: %s | ", exitPlateLPR);
@@ -729,11 +721,6 @@ void *statDisplay(void *args)
             strcpy(levelPlateLPR, shm.data->level[i].licensePlateReader.plate);
             pthread_mutex_unlock(&shm.data->level[i].licensePlateReader.m);
             rawData[i][j % ARSIZE] = shm.data->level[i].tempSensor;     
-
-            // printf("-----------------------------Level %d information------------------------------\n", i + 1);
-            // printf("Temperature Sensor status: %s\n", (shm.data->level[i].fireAlarm == '0') ? "No fire detected..." : "FIRE DETECTED!");
-            // // Display Number of vehicles  and  maximum  capacity  on  each  level
-            // printf("Currently %d cars on level %d, which has a maximum capacity of %d\n", levelCapacity[i], i + 1, CAPACITY);
 
             printf("\nLevel %d | ", i + 1);
             printf("Capacity: %d/%d cars | ",  levelCapacity[i], i + 1, CAPACITY);
@@ -874,7 +861,7 @@ void fire_emergency(void)
         levelCapacity[i] = 0;
         pthread_mutex_unlock(&levelCapacityMutex[i]);
     }
-    while (fire)
+    while (fireEmergency)
     {
         evac_sequence();
     }
@@ -882,40 +869,30 @@ void fire_emergency(void)
 
 void fire_checker(void)
 {
-
     for (int i = 0; i < LEVELS; i++)
     {
         if (shm.data->level[i].fireAlarm == '1')
         {
-            fire = 1;
+            fireEmergency = 1;
         }
     }
 }
 
 int main()
 {
-    // while(!fire)
-    // {
-        // Initialise random seed
         time_t t;
         srand((unsigned)time(&t));
 
-        // Initialises all level queues
         for (int i = 0; i < LEVELS; i++)
         {
             levelCapacity[i] = 0;
         }
         moneyEarned = 0;
-        fire = 0;
+        fireEmergency = 0;
 
-        // Read the number plates
         readFile("plates.txt");
 
-        // Mount shared memory
-        create_shared_object_R(&shm, SHARE_NAME);
-
-        // Create and join threads
+        readObject(&shm, SHARE_NAME);
         initThreads();
-    // }
-    // fire_emergency();
+
 }

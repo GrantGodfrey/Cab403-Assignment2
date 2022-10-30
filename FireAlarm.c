@@ -14,15 +14,15 @@
 
 #define SHARE_NAME "PARKING"
 #define FIRETOLERANCE 8
-#define ARSIZE 30
-#define LOOPLIM 1e9
+#define SIZE 30
+#define LOOPLIMITER 1e9
 
 int ALARM = 0;
-int16_t rawData[LEVELS][ARSIZE] = {0};
-int16_t smoothData[LEVELS][ARSIZE] = {0};
+int16_t rawData[LEVELS][SIZE] = {0};
+int16_t smoothData[LEVELS][SIZE] = {0};
 shared_memory_t shm;
 
-bool create_shared_object_R(shared_memory_t *shm, const char *share_name)
+bool readObject(shared_memory_t *shm, const char *share_name)
 {
     shm->name = share_name;
     while ((shm->fd = shm_open(share_name, O_RDWR, 0)) < 0)
@@ -38,24 +38,19 @@ bool create_shared_object_R(shared_memory_t *shm, const char *share_name)
     return true;
 }
 
-
-// Fixed temperature fire detection - Tests if 90% of readings 58 degrees or over
-int fixedTemp(int16_t arr[LEVELS][ARSIZE], int index)
+int fixed(int16_t arr[LEVELS][SIZE], int index)
 {
-    // Check alarm is not already active
+
     assert(ALARM == 0);
-    // Count recent temperature readings over 58 degrees
     int count_temp = 0;
 
-    for (int i = 0; i < ARSIZE; i++)
+    for (int i = 0; i < SIZE; i++)
     {
         if (arr[index][i] >= 58)
         {
             count_temp++;
-            // Check if 90 percent of the readings have exceeded maximum temp
-            if (count_temp >= ARSIZE * 0.9)
+            if (count_temp >= SIZE * 0.9)
             {
-                // Set off alarm
                 ALARM = 1;
                 return ALARM;
             }
@@ -64,12 +59,10 @@ int fixedTemp(int16_t arr[LEVELS][ARSIZE], int index)
     return 0;
 }
 
-int rateOfRise(int16_t arr[LEVELS][ARSIZE], int index)
+int riseRate(int16_t arr[LEVELS][SIZE], int index)
 {
-    // Check alarm is not already active
     assert(ALARM == 0);
-    // Check if the most recent temperature is 8°C (or more) hotter than the 30th most recent temperature
-    if (arr[index][0] != 0 && arr[index][ARSIZE - 1] - arr[index][0] >= FIRETOLERANCE)
+    if (arr[index][0] != 0 && arr[index][SIZE - 1] - arr[index][0] >= FIRETOLERANCE)
     {
         ALARM = 1;
         return ALARM;
@@ -77,14 +70,11 @@ int rateOfRise(int16_t arr[LEVELS][ARSIZE], int index)
     return 0;
 }
 
-int16_t findMedian(int16_t array[ARSIZE], int n)
+int16_t searchMedian(int16_t array[SIZE], int n)
 {
     int16_t medianVal = 0;
-
-    // if number of elements are even
     if (n % 2 == 0)
         medianVal = (array[(n - 1) / 2] + array[n / 2]) / 2.0;
-    // if number of elements are odd
     else
         medianVal = array[n / 2];
 
@@ -93,21 +83,16 @@ int16_t findMedian(int16_t array[ARSIZE], int n)
 
 int16_t smoothedData(int16_t arr[5])
 {
-    // Require 5 most recent temperatures as per the spec
-    int numElements = 5;
-    // Sort the array in ascending order
-    arraySort(arr, numElements);
-    // Pass the sorted array to calculate the median of array.
-    int16_t median = findMedian(arr, numElements);
+    int num = 5;
+    arraySort(arr, num);
+    int16_t median = searchMedian(arr, num);
     return median;
 }
 
-// Following array sorting and median functions found on https://www.includehelp.com/c-programs/calculate-median-of-an-array.aspx.
-void arraySort(int16_t array[ARSIZE], int n)
+// https://www.includehelp.com/c-programs/calculate-median-of-an-array.aspx.
+void arraySort(int16_t array[SIZE], int n)
 {
-    // Declare local variables
     int16_t i = 0, j = 0, temp = 0;
-
     for (i = 0; i < n; i++)
     {
         for (j = 0; j < n - 1; j++)
@@ -122,57 +107,41 @@ void arraySort(int16_t array[ARSIZE], int n)
     }
 }
 
-
-// checks if the upper bound of a loop has been reached
-// terminates program with error message if true
-void loopLim(int i)
-{
-    if (i >= LOOPLIM)
-    {
-        printf("ERROR: Loop Limit Upper Bound Exceeded, Program Will Close");
-        exit(1);
-    }
-}
-
 int main()
 {
-    // Initialise Shared memory
-    create_shared_object_R(&shm, SHARE_NAME);
-    // Declare local variables
+    readObject(&shm, SHARE_NAME);
     int j = 0, levelOfFire = 0, lim = 0;
-    while (lim < LOOPLIM)
+    while (lim < LOOPLIMITER)
     {
-        // Loop through levels checking temperatures
         for (int i = 0; i < LEVELS; i++)
         {
-            // Read temperature data from temperature sensor
-            rawData[i][j % ARSIZE] = shm.data->level[i].tempSensor;
-            printf("Temperature sensor for level %d: %d degrees\n", i + 1, rawData[i][j % ARSIZE]);
+            rawData[i][j % SIZE] = shm.data->level[i].tempSensor;
+            printf("Temperature sensor for level %d: %d degrees\n", i + 1, rawData[i][j % SIZE]);
             if (j > 4)
             {
-                // Find 5 most recent temperature readings
-                int index = j % ARSIZE, z = 0, numElements = 5;
+                int index = j % SIZE, z = 0, num = 5;
                 int16_t mostRecentReadings[5];
-                for (int currentIndex = index - numElements; currentIndex < index; currentIndex++)
+                for (int currentIndex = index - num; currentIndex < index; currentIndex++)
                 {
                     mostRecentReadings[z] = rawData[i][currentIndex];
                     z++;
                 }
-                // Calculate the recent smoothed data
                 int16_t medianReading = smoothedData(mostRecentReadings);
-                smoothData[i][j % ARSIZE] = medianReading;
-                // Check temp readings on every floor for both methods of detection
-                if (fixedTemp(smoothData, i) || rateOfRise(smoothData, i))
+                smoothData[i][j % SIZE] = medianReading;
+                if (fixed(smoothData, i) || riseRate(smoothData, i))
                 {
                     levelOfFire = i;
                     break;
                 }
             }
             usleep(2000);
+            if (i >= LOOPLIMITER)
+            {
+                printf("Loop Limit reached!");
+                exit(1);
+            }
         }
-        loopLim(lim);
         j++;
-        // Set stauts of fire alarm to '1' in shared memory when activated
         if (ALARM == 1)
         {
             shm.data->level[levelOfFire].fireAlarm = '1';
