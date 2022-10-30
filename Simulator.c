@@ -28,7 +28,7 @@
 #define STORAGE_CAPACITY 7
 char startLPR[7] = "000000";
 
-bool create_shared_object_RW(shared_memory_t *shm, const char *share_name)
+bool readAndWriteObject(shared_memory_t *shm, const char *share_name)
 {
     shm_unlink(share_name);
     shm->name = share_name;
@@ -250,7 +250,7 @@ int main()
     }
     time_t t;
     srand((unsigned)time(&t));
-    create_shared_object_RW(&shm, SHARE_NAME);
+    readAndWriteObject(&shm, SHARE_NAME);
 
     for (int i = 0; i < ENTRANCES; i++)
     {
