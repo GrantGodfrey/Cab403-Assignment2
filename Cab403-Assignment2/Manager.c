@@ -65,7 +65,7 @@ void storageInit(carMemory_t *carMemory)
 //adding cars into parking by level
 void addCar(carMemory_t *carMemory, char *plate, clock_t start, clock_t finish, int level)
 {
-    //old carMemory->size
+    
     int old_size = carMemory->size;
     memcpy(carMemory->car[old_size].plate, plate, 7);
     carMemory->car[old_size].start = start;
@@ -79,7 +79,7 @@ void addCar(carMemory_t *carMemory, char *plate, clock_t start, clock_t finish, 
 //removing cars from parking 
 void removeCar(carMemory_t *carMemory, char *plate)
 {
-    //old carMemory->size
+    
     int old_size = carMemory->size;
     car_t old_car[MAX_CAPACITY];
     int loc;
