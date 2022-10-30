@@ -1,4 +1,3 @@
-// ------------------------------------------- HEADER --------------------------------------------- //
 #include "sharedMemory.h"
 #include <assert.h>
 #include <semaphore.h>
@@ -18,7 +17,6 @@
 #define ARSIZE 30
 #define LOOPLIM 1e9
 
-// --------------------------------------- PUBLIC VARIABLES --------------------------------------- //
 int ALARM = 0;
 int16_t rawData[LEVELS][ARSIZE] = {0};
 int16_t smoothData[LEVELS][ARSIZE] = {0};
@@ -26,17 +24,13 @@ shared_memory_t shm;
 
 bool create_shared_object_R(shared_memory_t *shm, const char *share_name)
 {
-    // Assign share name to shm->name.
     shm->name = share_name;
-
-    // Create the shared memory object, allowing read-write access
-    if ((shm->fd = shm_open(share_name, O_RDWR, 0)) < 0)
+    while ((shm->fd = shm_open(share_name, O_RDWR, 0)) < 0)
     {
         shm->data = NULL;
         return false;
     }
 
-    // Map memory segment
     if ((shm->data = mmap(0, sizeof(shared_data_t), PROT_WRITE, MAP_SHARED, shm->fd, 0)) == (void *)-1)
     {
         return false;
@@ -45,22 +39,21 @@ bool create_shared_object_R(shared_memory_t *shm, const char *share_name)
 }
 
 
-// --------------------------------------- HELPER FUNCTIONS --------------------------------------- //
-
 // Fixed temperature fire detection - Tests if 90% of readings 58 degrees or over
 int fixedTemp(int16_t arr[LEVELS][ARSIZE], int index)
 {
     // Check alarm is not already active
     assert(ALARM == 0);
     // Count recent temperature readings over 58 degrees
-    int cnt = 0;
-    for (int j = 0; j < ARSIZE; j++)
+    int count_temp = 0;
+
+    for (int i = 0; i < ARSIZE; i++)
     {
-        if (arr[index][j] >= 58)
+        if (arr[index][i] >= 58)
         {
-            cnt++;
+            count_temp++;
             // Check if 90 percent of the readings have exceeded maximum temp
-            if (cnt >= ARSIZE * 0.9)
+            if (count_temp >= ARSIZE * 0.9)
             {
                 // Set off alarm
                 ALARM = 1;
@@ -86,16 +79,16 @@ int rateOfRise(int16_t arr[LEVELS][ARSIZE], int index)
 
 int16_t findMedian(int16_t array[ARSIZE], int n)
 {
-    int16_t median = 0;
+    int16_t medianVal = 0;
 
     // if number of elements are even
     if (n % 2 == 0)
-        median = (array[(n - 1) / 2] + array[n / 2]) / 2.0;
+        medianVal = (array[(n - 1) / 2] + array[n / 2]) / 2.0;
     // if number of elements are odd
     else
-        median = array[n / 2];
+        medianVal = array[n / 2];
 
-    return median;
+    return medianVal;
 }
 
 int16_t smoothedData(int16_t arr[5])

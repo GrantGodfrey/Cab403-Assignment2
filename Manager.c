@@ -136,20 +136,6 @@ int findIndex(carMemory_t *carMemory, char *plate)
     return 1;
 }
 
-
-void printCarList(carMemory_t *carMemory)
-{
-    printf("NUMBER OF PLATES ARE: %d\n", carMemory->size);
-    for (int i = 0; i < carMemory->size; i++)
-    {
-        printf("Plate number %d is: %s\n", i, carMemory->car[i].plate);
-        printf("Entrance time of car %d is: %ld\n", i, carMemory->car[i].start);
-        printf("Park time of car %d is: %ld\n", i, carMemory->car[i].finish);
-        printf("Level of car %d is: %d\n", i, carMemory->car[i].level);
-        printf("Number of LRP count %d is: %d\n", i, carMemory->car[i].count);
-    }
-}
-
 bool create_shared_object_R(shared_memory_t *shm, const char *share_name)
 {
     shm->name = share_name;
@@ -176,7 +162,7 @@ void plateInit(carVector_t *carVector)
 }
 
 
-void addPlate(carVector_t *carVector, char *plate)
+void addLP(carVector_t *carVector, char *plate)
 {
     int old_size = carVector->size;
     strcpy(carVector->plateQueue[old_size], plate);
@@ -184,7 +170,7 @@ void addPlate(carVector_t *carVector, char *plate)
 }
 
 
-void popPlate(carVector_t *carVector)
+void popLP(carVector_t *carVector)
 {
     int old_size = carVector->size;
     char old_data[MAX_CAPACITY][STORAGE_CAPACITY];
@@ -198,37 +184,6 @@ void popPlate(carVector_t *carVector)
     }
     carVector->size = old_size - 1;
 }
-
-
-void popRandom(carVector_t *carVector, int index)
-{
-    int old_size = carVector->size;
-    char old_data[MAX_CAPACITY][STORAGE_CAPACITY];
-    for (int i = 0; i < old_size; i++)
-    {
-        strcpy(old_data[i], carVector->plateQueue[i]);
-    }
-    for (int i = 0; i < index; i++)
-    {
-        strcpy(carVector->plateQueue[i], old_data[i]);
-    }
-
-    for (int i = index; i < old_size - 1; i++)
-    {
-        strcpy(carVector->plateQueue[i], old_data[i + 1]);
-    }
-    carVector->size = old_size - 1;
-}
-
-// Print plates
-// void printPlate(carVector_t *carVector)
-// {
-//     printf("NUMBER OF PLATES ARE: %d\n", carVector->size);
-//     for (int i = 0; i < carVector->size; i++)
-//     {
-//         printf("Plate number %d is: %s\n", i, carVector->plateQueue[i]);
-//     }
-// }
 
 double generateRandom(int lower, int upper)
 {
@@ -320,7 +275,7 @@ void *lpr_entrance(void *arg)
 
             pthread_mutex_lock(&levelQueueMutex[i]);
             pthread_mutex_lock(&shm.data->entrance[i].licensePlateReader.m);
-            addPlate(&levelQueue[i], shm.data->entrance[i].licensePlateReader.plate);
+            addLP(&levelQueue[i], shm.data->entrance[i].licensePlateReader.plate);
             pthread_mutex_unlock(&shm.data->entrance[i].licensePlateReader.m);
             pthread_mutex_unlock(&levelQueueMutex[i]);
 
@@ -406,7 +361,7 @@ void *lpr_level(void *arg)
             {
 
                 pthread_mutex_lock(&levelQueueMutex[i]);
-                addPlate(&levelQueue[(int)generateRandom(0, 4)], plate);
+                addLP(&levelQueue[(int)generateRandom(0, 4)], plate);
                 pthread_mutex_unlock(&levelQueueMutex[i]);
             }
         }
@@ -415,7 +370,7 @@ void *lpr_level(void *arg)
 
             pthread_mutex_lock(&exitQueueMutex[i]);
             pthread_mutex_lock(&shm.data->level[i].licensePlateReader.m);
-            addPlate(&exitQueue[i], shm.data->level[i].licensePlateReader.plate);
+            addLP(&exitQueue[i], shm.data->level[i].licensePlateReader.plate);
             pthread_mutex_unlock(&shm.data->level[i].licensePlateReader.m);
             pthread_mutex_unlock(&exitQueueMutex[i]);
             // Decrease capacity
@@ -451,7 +406,7 @@ void *level_cont(void *arg)
         pthread_mutex_lock(&shm.data->level[i].licensePlateReader.m);
         pthread_mutex_lock(&levelQueueMutex[i]);
         strcpy(shm.data->level[i].licensePlateReader.plate, levelQueue[i].plateQueue[0]);
-        popPlate(&levelQueue[i]);
+        popLP(&levelQueue[i]);
         pthread_mutex_unlock(&shm.data->level[i].licensePlateReader.m);
         pthread_mutex_unlock(&levelQueueMutex[i]);
 
@@ -539,7 +494,7 @@ void *exit_cont(void *arg)
         pthread_mutex_unlock(&shm.data->exit[i].licensePlateReader.m);
 
 
-        popPlate(&exitQueue[i]);
+        popLP(&exitQueue[i]);
         pthread_mutex_unlock(&exitQueueMutex[i]);
 
 
@@ -566,7 +521,7 @@ void *time_check(void *arg)
                 carMemory.car[i].withdrawn = true;
 
                 pthread_mutex_lock(&levelQueueMutex[carMemory.car[i].level]);
-                addPlate(&levelQueue[carMemory.car[i].level], carMemory.car[i].plate);
+                addLP(&levelQueue[carMemory.car[i].level], carMemory.car[i].plate);
                 pthread_mutex_unlock(&levelQueueMutex[carMemory.car[i].level]);
             }
         }
