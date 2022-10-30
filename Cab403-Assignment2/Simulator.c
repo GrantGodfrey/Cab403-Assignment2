@@ -144,22 +144,28 @@ void popRandom(carVector_t *carVector, int index)
 
 char *randomPlate()
 {
-    int first = generateRandom(0, 9);
-    int second = generateRandom(0, 9);
-    char third = generateRandom(0, 9);
+    int number[3] = {};
+    for (int i = 0; i < 3; i++)
+    {
+        number[i] = generateRandom(0, 9);
+    }
 
-    char randomletter1 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[generateRandom(0, 25)];
-    char randomletter2 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[generateRandom(0, 25)];
-    char randomletter3 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[generateRandom(0, 25)];
+    char character[3] = {};
+    for (int i = 0; i < 3; i++)
+    {
+        character[i] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"[generateRandom(0, 25)];
+    }
 
     char *finstr = NULL;
     finstr = malloc(10);
-    sprintf(&finstr[0], "%d", first);
-    sprintf(&finstr[1], "%d", second);
-    sprintf(&finstr[2], "%d", third);
-    finstr[3] = randomletter1;
-    finstr[4] = randomletter2;
-    finstr[5] = randomletter3;
+    for (int i = 0; i < 3; i++)
+    {
+        sprintf(&finstr[i], "%d", number[i]);
+    }
+
+    finstr[3] = character[0];
+    finstr[4] = character[1];
+    finstr[5] = character[2];
     finstr[6] = '\0';
 
     return finstr;
