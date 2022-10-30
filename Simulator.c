@@ -28,59 +28,26 @@
 #define STORAGE_CAPACITY 7
 char startLPR[7] = "000000";
 
-
-
-// --------------------------------------- PUBLIC VARIABLES --------------------------------------- //
 bool create_shared_object_RW(shared_memory_t *shm, const char *share_name)
 {
-    // Remove any previous instance of the shared memory object, if it exists.
     shm_unlink(share_name);
-
-    // Assign share name to shm.data->name.
     shm->name = share_name;
-
-    // Create the shared memory object, allowing read-write access
     if ((shm->fd = shm_open(share_name, O_CREAT | O_RDWR, 0666)) < 0)
     {
         shm->data = NULL;
         return false;
     }
-
-    // Set the capacity of the shared memory object via ftruncate.
     if (ftruncate(shm->fd, sizeof(shared_data_t)) == -1)
     {
         shm->data = NULL;
         return false;
     }
-
-    // Map memory segment
     if ((shm->data = mmap(0, sizeof(shared_data_t), PROT_WRITE, MAP_SHARED, shm->fd, 0)) == (void *)-1)
     {
         return false;
     }
-
-    // If we reach this point we should return true.
     return true;
 }
-
-/**
- * Controller: destroys the shared memory object managed by a shared memory
- * control block.
- */
-void destroy_shared_object(shared_memory_t *shm)
-{
-    // Remove the shared memory object.
-    munmap(shm, 48);
-    shm->data = NULL;
-    shm->fd = -1;
-    shm_unlink(shm->name);
-}
-
-/**
- * Controller: initialise a shared_object_t, creating a block of shared memory
- * with the designated name, and setting its storage capacity to the size of a
- * shared data block.
- */
 
 char approved_plates[100][7];
 shared_memory_t shm;
@@ -88,26 +55,13 @@ carVector_t entranceQueue[ENTRANCES];
 pthread_mutex_t entranceQueueMutex[ENTRANCES];
 int selector;
 
-// Initialise the queue
-// void plateInit(carVector_t *carVector)
-// {
-//     carVector->size = 0;
-//     for (int i = 0; i < MAX_CAPACITY; i++)
-//     {
-//         strcpy(carVector->plateQueue[i], "empty");
-//     }
-// }
-
-// Append plate to end of queue
-void addPlate(carVector_t *carVector, char *plate)
+void addLP(carVector_t *carVector, char *plate)
 {
-    // int old_size = carVector->size;
     strcpy(carVector->plateQueue[carVector->size], plate);
     carVector->size = carVector->size + 1;
 }
 
-// Remove first plate from queue
-void popPlate(carVector_t *carVector)
+void popLP(carVector_t *carVector)
 {
 
     char old_data[MAX_CAPACITY][STORAGE_CAPACITY];
@@ -116,26 +70,6 @@ void popPlate(carVector_t *carVector)
         strcpy(old_data[i], carVector->plateQueue[i]);
     }
     for (int i = 0; i < carVector->size - 1; i++)
-    {
-        strcpy(carVector->plateQueue[i], old_data[i + 1]);
-    }
-    carVector->size = carVector->size - 1;
-}
-
-// Pop a plate at an index
-void popRandom(carVector_t *carVector, int index)
-{
-    char old_data[MAX_CAPACITY][STORAGE_CAPACITY];
-    for (int i = 0; i < carVector->size; i++)
-    {
-        strcpy(old_data[i], carVector->plateQueue[i]);
-    }
-    for (int i = 0; i < index; i++)
-    {
-        strcpy(carVector->plateQueue[i], old_data[i]);
-    }
-
-    for (int i = index; i < carVector->size - 1; i++)
     {
         strcpy(carVector->plateQueue[i], old_data[i + 1]);
     }
@@ -171,15 +105,6 @@ char *randomPlate()
     return finstr;
 }
 
-// Print plates
-// void printPlate(carVector_t *carVector)
-// {
-//     printf("NUMBER OF PLATES ARE: %d\n", carVector->size);
-//     for (int i = 0; i < carVector->size; i++)
-//     {
-//         printf("Plate number %d is: %s\n", i, carVector->plateQueue[i]);
-//     }
-// }
 char *generatePlate(int probability)
 {
     int random = generateRandom(0, 100);
@@ -200,8 +125,6 @@ void *spawnCar(void *args)
     char *plate;
     int waitTime;
     
-
-    // Initialise entrance queues
     for (int i = 0; i < ENTRANCES; i++)
     {
         // plateInit(&entranceQueue[i]);
@@ -215,69 +138,41 @@ void *spawnCar(void *args)
 
     for (int i = 0; i < CAR_LIMIT; i++)
     {
-        // Generate numberplate (from list/random)
         plate = generatePlate(RANDOM_CHANCE);
         selector++;
-
-        // Generate car every 1 - 100 milliseconds
         waitTime = generateRandom(1, 100) * 1000;
         usleep(waitTime);
-
-        // Generate a random entrance
         int entranceCar = generateRandom(0, ENTRANCES - 1);
-
         printf("The plate %s is arriving at entrance %d\n", plate, entranceCar + 1);
-        // SPAWN CAR THREAD
         pthread_mutex_lock(&entranceQueueMutex[entranceCar]);
-        addPlate(&entranceQueue[entranceCar], plate);
+        addLP(&entranceQueue[entranceCar], plate);
         pthread_mutex_unlock(&entranceQueueMutex[entranceCar]);
-                    // Grab entrance LPR boomGate status
-        // pthread_mutex_lock(&shm.data->entrance[i].boomGate.m);
-        // pthread_mutex_unlock(&shm.data->entrance[i].boomGate.m);
-        // if (entranceGateStatus == 'x')
-        // {
-        //     printf("%s not permitted and leaves\n", plate);
-        // }
-        // else 
-        // {
-            // printf("Boom boomGate status: %c\n", entranceGateStatus);
-        // }
     }
     return 0;
 }
 
-void *entranceSimulate(void *arg) //needs change
+void *entranceSimulate(void *arg) 
 {
     int i = *(int *)arg;
     for (;;)
     {
-        // Wait for manager LPR thread to signal that LPR is free
         pthread_mutex_lock(&shm.data->entrance[i].licensePlateReader.m);
         while (strcmp(shm.data->entrance[i].licensePlateReader.plate, startLPR))
         {
             pthread_cond_wait(&shm.data->entrance[i].licensePlateReader.c, &shm.data->entrance[i].licensePlateReader.m);
         }
         pthread_mutex_unlock(&shm.data->entrance[i].licensePlateReader.m);
-        // LRP has been cleared
-
-        // Make sure plate is in queue
         while (entranceQueue[i].size <= 0)
             ;
-
-        // Copy a plate into memory
         pthread_mutex_lock(&shm.data->entrance[i].licensePlateReader.m);
         pthread_mutex_lock(&entranceQueueMutex[i]);
         strcpy(shm.data->entrance[i].licensePlateReader.plate, entranceQueue[i].plateQueue[0]);
         pthread_mutex_unlock(&entranceQueueMutex[i]);
         pthread_mutex_unlock(&shm.data->entrance[i].licensePlateReader.m);
-
-        // Wait 2ms before triggering LPR
         usleep(2000);
-
-        // Signal manager thread with new plate
         pthread_cond_signal(&shm.data->entrance[i].licensePlateReader.c);
         pthread_mutex_lock(&entranceQueueMutex[i]);
-        popPlate(&entranceQueue[i]);
+        popLP(&entranceQueue[i]);
         pthread_mutex_unlock(&entranceQueueMutex[i]);
     }
 }
@@ -288,12 +183,10 @@ int generateRandom(int lower, int upper)
     return num;
 }
 
-// Reads contents of supplied file
 void readFile(char *name)
 {
     FILE *file = fopen(name, "r");
 
-    // Fill array
     int i = 0;
     while (fgets(approved_plates[i], 10, file))
     {
@@ -302,30 +195,18 @@ void readFile(char *name)
     }
 }
 
-// Prints contents of numberplate file (USED FOR TESTING)
-void printFile()
-{
-    printf("\n The content of the file  are : \n");
-    for (int i = 0; i < 100; i++)
-    {
-        printf("%s, ", approved_plates[i]);
-    }
-    printf("\n");
-}
-
-// Simulates temperatures
 void *tempSensorSimulate(void *arg) 
 {
     int i = *(int *)arg;
     int16_t temp;
     int16_t currentTemp;
 
-    for (;;)
+    do
     {
         usleep(2000);
         if (FIRE == 2)
         { 
-            // trigger fire alarm via rate of rise
+
             if (shm.data->level[i].tempSensor > 58)
             {
                 currentTemp = 24;
@@ -339,18 +220,16 @@ void *tempSensorSimulate(void *arg)
         }
         else if (FIRE == 1)
         { 
-            // generate temperatures above 58
             temp = (int16_t)generateRandom(58, 68);
             shm.data->level[i].tempSensor = temp;
         }
         
         else
         {
-            // generate regular temps
             temp = (int16_t)24;
             shm.data->level[i].tempSensor = temp;
         }
-    }
+    }while(1);
 }
 int main()
 {
@@ -369,53 +248,40 @@ int main()
     {
         pthread_mutex_init(&entranceQueueMutex[ENTRANCES], NULL);
     }
-
-    // Initialise random seed
     time_t t;
     srand((unsigned)time(&t));
-
-    // Create shared memory object
     create_shared_object_RW(&shm, SHARE_NAME);
 
     for (int i = 0; i < ENTRANCES; i++)
     {
-         // Initiliase status of the gates to 'closed'
         shm.data->entrance[i].boomGate.status = 'C';
         strcpy(shm.data->entrance[i].licensePlateReader.plate, startLPR);
     }
 
-    // Initialise mutexs and condition variables in shared memory
     for (int i = 0; i < ENTRANCES; i++)
     {
-        // Intilise Mutexs and Condition variables for LPR sensors
         pthread_mutex_init(&shm.data->entrance[i].licensePlateReader.m, &am);
         pthread_cond_init(&shm.data->entrance[i].licensePlateReader.c, &attr_c);
     }
     for (int i = 0; i < ENTRANCES; i++)
     {
-         // Intilise Mutexs and Condition variables for Gates
         pthread_mutex_init(&shm.data->entrance[i].boomGate.m, &am);
         pthread_cond_init(&shm.data->entrance[i].boomGate.c, &attr_c);
-
     }
     for (int i = 0; i < ENTRANCES; i++)
     {
-        
-        // Intilise Mutexs and Condition variables for Information signs
         pthread_mutex_init(&shm.data->entrance[i].informationSign.m, &am);
         pthread_cond_init(&shm.data->entrance[i].informationSign.c, &attr_c);
     }
 
     for (int i = 0; i < EXITS; i++)
     {
-        // Initiliase status of the gates to 'closed'
         shm.data->exit[i].boomGate.status = 'C';
         strcpy(shm.data->exit[i].licensePlateReader.plate, startLPR);
     }
 
     for (int i = 0; i < EXITS; i++)
     {
-        // Intilise Mutexs and Condition variables for Gates
         pthread_mutex_init(&shm.data->exit[i].boomGate.m, &am);
         pthread_cond_init(&shm.data->exit[i].boomGate.c, &attr_c);
 
@@ -423,7 +289,6 @@ int main()
 
     for (int i = 0; i < EXITS; i++)
     {
-        // Intilise Mutexs and Condition variables for LPR sensors
         pthread_mutex_init(&shm.data->exit[i].licensePlateReader.m, &am);
         pthread_cond_init(&shm.data->exit[i].licensePlateReader.c, &attr_c);
     }
@@ -436,21 +301,17 @@ int main()
 
     for (int i = 0; i < LEVELS; i++)
     {
-        // Intilise Mutexs and Condition variables for LPR sensors
         pthread_mutex_init(&shm.data->level[i].licensePlateReader.m, &am);
         pthread_cond_init(&shm.data->level[i].licensePlateReader.c, &attr_c);   
     }
 
     for (int i = 0; i <LEVELS; i++)
     {
-         // Initiliase number plate to be xxxxxx
         strcpy(shm.data->level[i].licensePlateReader.plate, startLPR);
     }
 
-    // Read the number plates
     readFile("plates.txt");
 
-    // Create threads
     int i;
 
     pthread_create(&carSpawner, NULL, &spawnCar, NULL);
@@ -468,7 +329,6 @@ int main()
         pthread_create(&tempSensorSimulate_thread[i], NULL, &tempSensorSimulate, z);
     }
 
-    // Join threads
     pthread_join(carSpawner, NULL);
 
     for (i = 0; i < ENTRANCES; i++)

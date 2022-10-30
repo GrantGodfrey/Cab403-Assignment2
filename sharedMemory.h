@@ -145,9 +145,8 @@ typedef struct shared_memory
 } shared_memory_t;
 
 bool create_shared_object_RW(shared_memory_t *shm, const char *share_name);
-void destroy_shared_object(shared_memory_t *shm);
 bool create_shared_object_R(shared_memory_t *shm, const char *share_name);
 void initialiseSharedMemory(shared_memory_t shm);
-void addPlate(carVector_t *carVector, char *plate);
-void popPlate(carVector_t *carVector);
+void addLP(carVector_t *carVector, char *plate);
+void popLP(carVector_t *carVector);
 void plateInit(carVector_t *carVector);
