@@ -317,7 +317,7 @@ void printFile()
 void *tempSensorSimulate(void *arg) 
 {
     int i = *(int *)arg;
-    int16_t temperature;
+    int16_t temp;
     int16_t currentTemp;
 
     for (;;)
@@ -334,21 +334,21 @@ void *tempSensorSimulate(void *arg)
             {
                 currentTemp = shm.data->level[i].tempSensor;
             }
-            temperature = generateRandom(currentTemp, currentTemp + 2);
-            shm.data->level[i].tempSensor = temperature;
+            temp = generateRandom(currentTemp, currentTemp + 2);
+            shm.data->level[i].tempSensor = temp;
         }
         else if (FIRE == 1)
         { // (Fixed temp fire detection data)
             // Generate temperatures to trigger fire alarm via Temps > 58 degrees
-            temperature = (int16_t)generateRandom(58, 65);
-            shm.data->level[i].tempSensor = temperature;
+            temp = (int16_t)generateRandom(58, 65);
+            shm.data->level[i].tempSensor = temp;
         }
         
         else
         {
             // Generate normal temperatures to avoid setting off fire alarm
-            temperature = (int16_t)24;
-            shm.data->level[i].tempSensor = temperature;
+            temp = (int16_t)24;
+            shm.data->level[i].tempSensor = temp;
         }
     }
 }
