@@ -30,7 +30,6 @@ bool create_shared_object_R(shared_memory_t *shm, const char *share_name)
     shm->name = share_name;
 
     // Create the shared memory object, allowing read-write access
-    //changed here
     while ((shm->fd = shm_open(share_name, O_RDWR, 0)) < 0)
     {
         shm->data = NULL;
@@ -55,8 +54,8 @@ int fixedTemp(int16_t arr[LEVELS][ARSIZE], int index)
     assert(ALARM == 0);
     // Count recent temperature readings over 58 degrees
     int count_temp = 0;
-    //cahnged here
-    while (int i = 0; i < ARSIZE; i++)
+
+    for (int i = 0; i < ARSIZE; i++)
     {
         if (arr[index][i] >= 58)
         {
@@ -117,8 +116,7 @@ void arraySort(int16_t array[ARSIZE], int n)
     // Declare local variables
     int16_t i = 0, j = 0, temp = 0;
 
-    //changed here
-    while (i = 0; i < n; i++)
+    for (i = 0; i < n; i++)
     {
         for (j = 0; j < n - 1; j++)
         {
