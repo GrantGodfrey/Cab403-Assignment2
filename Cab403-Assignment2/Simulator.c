@@ -324,8 +324,8 @@ void *tempSensorSimulate(void *arg)
     {
         usleep(2000);
         if (FIRE == 2)
-        { // (Rate-of-rise fire detection data)
-            // Generate temperatures to trigger fire alarm via Rate-of-rise (Most recent temp >= 8 degrees hotter than 30th most recent)
+        { 
+            // trigger fire alarm via rate of rise
             if (shm.data->level[i].tempSensor > 58)
             {
                 currentTemp = 24;
@@ -338,15 +338,15 @@ void *tempSensorSimulate(void *arg)
             shm.data->level[i].tempSensor = temp;
         }
         else if (FIRE == 1)
-        { // (Fixed temp fire detection data)
-            // Generate temperatures to trigger fire alarm via Temps > 58 degrees
-            temp = (int16_t)generateRandom(58, 65);
+        { 
+            // generate temperatures above 58
+            temp = (int16_t)generateRandom(58, 68);
             shm.data->level[i].tempSensor = temp;
         }
         
         else
         {
-            // Generate normal temperatures to avoid setting off fire alarm
+            // generate regular temps
             temp = (int16_t)24;
             shm.data->level[i].tempSensor = temp;
         }
