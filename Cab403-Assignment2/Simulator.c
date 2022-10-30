@@ -22,7 +22,7 @@
 
 #define SHARE_NAME "PARKING"
 #define CAR_LIMIT 20
-#define FIRE 1
+#define FIRE 0
 #define RANDOM_CHANCE 80
 #define MAX_CAPACITY 100
 #define STORAGE_CAPACITY 7
@@ -314,7 +314,7 @@ void printFile()
 }
 
 // Simulates temperatures
-void *tempSensorSimulate(void *arg) // needs change
+void *tempSensorSimulate(void *arg) 
 {
     int i = *(int *)arg;
     int16_t temperature;
@@ -323,13 +323,7 @@ void *tempSensorSimulate(void *arg) // needs change
     for (;;)
     {
         usleep(2000);
-        if (FIRE == 1)
-        { // (Fixed temp fire detection data)
-            // Generate temperatures to trigger fire alarm via Temps > 58 degrees
-            temperature = (int16_t)generateRandom(58, 65);
-            shm.data->level[i].tempSensor = temperature;
-        }
-        else if (FIRE == 2)
+        if (FIRE == 2)
         { // (Rate-of-rise fire detection data)
             // Generate temperatures to trigger fire alarm via Rate-of-rise (Most recent temp >= 8 degrees hotter than 30th most recent)
             if (shm.data->level[i].tempSensor > 58)
@@ -343,6 +337,13 @@ void *tempSensorSimulate(void *arg) // needs change
             temperature = generateRandom(currentTemp, currentTemp + 2);
             shm.data->level[i].tempSensor = temperature;
         }
+        else if (FIRE == 1)
+        { // (Fixed temp fire detection data)
+            // Generate temperatures to trigger fire alarm via Temps > 58 degrees
+            temperature = (int16_t)generateRandom(58, 65);
+            shm.data->level[i].tempSensor = temperature;
+        }
+        
         else
         {
             // Generate normal temperatures to avoid setting off fire alarm
