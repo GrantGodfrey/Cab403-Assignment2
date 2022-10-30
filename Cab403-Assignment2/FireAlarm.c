@@ -30,7 +30,7 @@ bool create_shared_object_R(shared_memory_t *shm, const char *share_name)
     shm->name = share_name;
 
     // Create the shared memory object, allowing read-write access
-    if ((shm->fd = shm_open(share_name, O_RDWR, 0)) < 0)
+    while ((shm->fd = shm_open(share_name, O_RDWR, 0)) < 0)
     {
         shm->data = NULL;
         return false;
@@ -54,6 +54,7 @@ int fixedTemp(int16_t arr[LEVELS][ARSIZE], int index)
     assert(ALARM == 0);
     // Count recent temperature readings over 58 degrees
     int count_temp = 0;
+
     for (int i = 0; i < ARSIZE; i++)
     {
         if (arr[index][i] >= 58)
