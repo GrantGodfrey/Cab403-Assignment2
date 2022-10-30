@@ -53,14 +53,14 @@ int fixedTemp(int16_t arr[LEVELS][ARSIZE], int index)
     // Check alarm is not already active
     assert(ALARM == 0);
     // Count recent temperature readings over 58 degrees
-    int cnt = 0;
-    for (int j = 0; j < ARSIZE; j++)
+    int count_temp = 0;
+    for (int i = 0; i < ARSIZE; i++)
     {
-        if (arr[index][j] >= 58)
+        if (arr[index][i] >= 58)
         {
-            cnt++;
+            count_temp++;
             // Check if 90 percent of the readings have exceeded maximum temp
-            if (cnt >= ARSIZE * 0.9)
+            if (count_temp >= ARSIZE * 0.9)
             {
                 // Set off alarm
                 ALARM = 1;
@@ -86,16 +86,16 @@ int rateOfRise(int16_t arr[LEVELS][ARSIZE], int index)
 
 int16_t findMedian(int16_t array[ARSIZE], int n)
 {
-    int16_t median = 0;
+    int16_t medianVal = 0;
 
     // if number of elements are even
     if (n % 2 == 0)
-        median = (array[(n - 1) / 2] + array[n / 2]) / 2.0;
+        medianVal = (array[(n - 1) / 2] + array[n / 2]) / 2.0;
     // if number of elements are odd
     else
-        median = array[n / 2];
+        medianVal = array[n / 2];
 
-    return median;
+    return medianVal;
 }
 
 int16_t smoothedData(int16_t arr[5])
